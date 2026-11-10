@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Bean There · Coffee &amp; Kitchen</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: Georgia, serif; background: #f6efe6; color: #3b2a1e; }
+    .wrap { max-width: 960px; margin: 0 auto; padding: 0 20px; }
+    .hero { padding: 96px 0; background: #3b2a1e; color: #f6efe6; text-align: center; }
+    .hero h1 { font-size: 3.5rem; margin: 0; }
+    .hero p { font-size: 1.25rem; opacity: .85; }
+    section { padding: 48px 0; }
+    .menu { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+    .item { background: #fff; border-radius: 12px; padding: 16px; display: flex; justify-content: space-between; }
+    .price { font-weight: bold; }
+    .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; }
+    table td { padding: 4px 16px 4px 0; }
+    @media (max-width: 640px) {
+      .hero h1 { font-size: 2.4rem; }
+      .menu, .cols { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <header class="hero">
+    <div class="wrap">
+      <h1>Bean There</h1>
+      <p>Small-batch coffee, roasted down the street. Been there? Come back.</p>
+    </div>
+  </header>
+
+  <section id="menu">
+    <div class="wrap">
+      <h2>Menu</h2>
+      <div class="menu">
+        <div class="item"><span>Espresso</span><span class="price">$3.00</span></div>
+        <div class="item"><span>Cappuccino</span><span class="price">$4.25</span></div>
+        <div class="item"><span>Oat Milk Latte</span><span class="price">$4.75</span></div>
+        <div class="item"><span>Cold Brew</span><span class="price">$4.50</span></div>
+        <div class="item"><span>Chai Latte</span><span class="price">$4.50</span></div>
+        <div class="item"><span>Hot Chocolate</span><span class="price">$3.75</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="visit">
+    <div class="wrap cols">
+      <div>
+        <h2>Opening Hours</h2>
+        <table>
+          <tr><td>Mon – Fri</td><td>7:00 am – 6:00 pm</td></tr>
+          <tr><td>Saturday</td><td>8:00 am – 5:00 pm</td></tr>
+          <tr><td>Sunday</td><td>9:00 am – 3:00 pm</td></tr>
+        </table>
+      </div>
+      <div id="contact">
+        <h2>Contact &amp; Location</h2>
+        <p>42 Roast Lane, Portland, OR 97205</p>
+        <p>Phone: <a href="tel:+15035550142">(503) 555-0142</a></p>
+        <p>Email: <a href="mailto:hello@beanthere.example">hello@beanthere.example</a></p>
+      </div>
+    </div>
+  </section>
+</body>
+</html>
