@@ -8,13 +8,47 @@ export interface AIResult<T> {
   provider: string;
 }
 
+const AI_TIMEOUT_MS = Number(process.env.AI_TIMEOUT_MS || 45_000);
+
+async function fetchWithTimeout(url: string, init: RequestInit): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), AI_TIMEOUT_MS);
+  try {
+    return await fetch(url, { ...init, signal: controller.signal });
+  } catch (e) {
+    if ((e as Error).name === "AbortError") throw new Error(`timed out after ${AI_TIMEOUT_MS / 1000}s`);
+    throw e;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 async function gemini<T>(system: string, prompt: string, schema: object, image?: ImageInput): Promise<T> {
   const key = process.env.GEMINI_API_KEY;
   if (!key) throw new Error("GEMINI_API_KEY not set");
-  const model = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+  const models = [process.env.GEMINI_MODEL || "gemini-3.8-flash", "gemini-3.5-flash", "gemini-flash-latest"];
+  const errors: string[] = [];
+  for (const model of [...new Set(models)]) {
+    try {
+      return await geminiModel<T>(key, model, system, prompt, schema, image);
+    } catch (e) {
+      errors.push(`${model}: ${(e as Error).message}`);
+    }
+  }
+  throw new Error(`Gemini error: ${errors.join("; ")}`);
+}
+
+async function geminiModel<T>(
+  key: string,
+  model: string,
+  system: string,
+  prompt: string,
+  schema: object,
+  image?: ImageInput,
+): Promise<T> {
   const parts: object[] = [{ text: prompt }];
   if (image) parts.push({ inline_data: { mime_type: image.mimeType, data: image.base64 } });
-  const res = await fetch(
+  const res = await fetchWithTimeout(
     `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`,
     {
       method: "POST",
@@ -31,7 +65,7 @@ async function gemini<T>(system: string, prompt: string, schema: object, image?:
     },
   );
   const data = await res.json();
-  if (!res.ok) throw new Error(`Gemini error: ${data?.error?.message || res.statusText}`);
+  if (!res.ok) throw new Error(data?.error?.message || res.statusText);
   const text = data?.candidates?.[0]?.content?.parts?.map((p: { text?: string }) => p.text || "").join("");
   if (!text) throw new Error("Gemini returned no content");
   return JSON.parse(text) as T;
@@ -41,14 +75,16 @@ async function groq<T>(system: string, prompt: string, schema: object, image?: I
   const key = process.env.GROQ_API_KEY;
   if (!key) throw new Error("GROQ_API_KEY not set");
   const model = image
-    ? process.env.GROQ_VISION_MODEL || "meta-llama/llama-4-scout-17b-16e-instruct"
-    : process.env.GROQ_MODEL || "llama-3.3-70b-versatile";
-  const userContent: object[] = [
-    { type: "text", text: `${prompt}\n\nRespond ONLY with JSON matching this schema:\n${JSON.stringify(schema)}` },
-  ];
-  if (image)
-    userContent.push({ type: "image_url", image_url: { url: `data:${image.mimeType};base64,${image.base64}` } });
-  const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+    ? process.env.GROQ_VISION_MODEL || "qwen/qwen3.8-27b"
+    : process.env.GROQ_MODEL || "openai/gpt-oss-120b";
+  const text = `${prompt}\n\nRespond ONLY with JSON matching this schema:\n${JSON.stringify(schema)}`;
+  const userContent = image
+    ? [
+        { type: "text", text },
+        { type: "image_url", image_url: { url: `data:${image.mimeType};base64,${image.base64}` } },
+      ]
+    : text;
+  const res = await fetchWithTimeout("https://api.groq.com/openai/v1/chat/completions", {
     method: "POST",
     headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -72,17 +108,17 @@ export async function generateJSON<T>(
   schema: object,
   image?: ImageInput,
 ): Promise<AIResult<T>> {
+  const providers = {
+    groq: { enabled: !!process.env.GROQ_API_KEY, name: "Groq", run: groq },
+    gemini: { enabled: !!process.env.GEMINI_API_KEY, name: "Google Gemini", run: gemini },
+  };
+  const order = (process.env.AI_PROVIDER_ORDER || "groq,gemini").split(",").map((s) => s.trim());
   const errors: string[] = [];
-  if (process.env.GEMINI_API_KEY) {
+  for (const id of order) {
+    const p = providers[id as keyof typeof providers];
+    if (!p?.enabled) continue;
     try {
-      return { data: await gemini<T>(system, prompt, schema, image), provider: "Google Gemini" };
-    } catch (e) {
-      errors.push((e as Error).message);
-    }
-  }
-  if (process.env.GROQ_API_KEY) {
-    try {
-      return { data: await groq<T>(system, prompt, schema, image), provider: "Groq (Llama)" };
+      return { data: await p.run<T>(system, prompt, schema, image), provider: p.name };
     } catch (e) {
       errors.push((e as Error).message);
     }
@@ -122,9 +158,13 @@ const contractSchema = {
 export async function draftContract(description: string, budget: number): Promise<AIResult<DraftContract>> {
   const system =
     "You are ProofPay's contract agent. You turn a client's plain-English job request into a fair escrow contract " +
-    "for a freelancer. Split the work into 1-3 milestones whose amounts sum to the budget. For each milestone write " +
-    "2-5 acceptance criteria that are objective and verifiable from a submitted deliverable (a URL, text, or screenshot). " +
-    "Avoid vague criteria like 'looks good'. Be concise.";
+    "for a freelancer. Use 2 milestones (3 only for budgets over $1000) whose amounts sum to the budget. Milestones are " +
+    "successive stages of the same deliverable (e.g. core content first, then remaining requirements), each verifiable " +
+    "on its own. For each milestone write 2-4 acceptance criteria that restate what the client asked for as objective " +
+    "checks that can be verified by inspecting the submitted deliverable itself (a URL's page source, notes, or a " +
+    "screenshot). Only include requirements the client actually asked for. Never invent requirements about hosting, " +
+    "HTTPS, file formats, mockups, validators, console errors, exact pixel breakpoints, or performance scores. " +
+    "Avoid vague criteria like 'looks good'. Keep each criterion under 15 words.";
   const prompt = `Client request:\n"""${description}"""\n\nTotal budget: ${budget.toFixed(2)} USD`;
   const res = await generateJSON<DraftContract>(system, prompt, contractSchema);
   res.data.milestones = normalizeAmounts(res.data.milestones.slice(0, 3), budget);
