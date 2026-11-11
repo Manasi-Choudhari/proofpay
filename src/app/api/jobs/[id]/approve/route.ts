@@ -1,21 +1,19 @@
 import { NextResponse } from "next/server";
+import { bad, notFound, withAuth } from "@/lib/api";
 import { releaseMilestone } from "@/lib/escrow";
 import { getJob, logEvent, saveJob } from "@/lib/store";
 
-export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const job = getJob((await params).id);
-  if (!job) return NextResponse.json({ error: "Job not found" }, { status: 404 });
+export const POST = withAuth<{ id: string }>(async (req, session, { id }) => {
+  const job = getJob(id, session.email);
+  if (!job) return notFound();
   const { milestoneId } = await req.json();
   const milestone = job.milestones.find((m) => m.id === milestoneId);
-  if (!milestone || milestone.status !== "needs_review")
-    return NextResponse.json({ error: "Milestone is not awaiting review" }, { status: 400 });
+  if (!milestone || milestone.status !== "needs_review") return bad("Milestone is not awaiting review");
+  logEvent(job, "user", `Client manually approved "${milestone.title}".`);
   try {
-    logEvent(job, "user", `Client manually approved "${milestone.title}".`);
     await releaseMilestone(job, milestone, "client");
+  } finally {
     saveJob(job);
-    return NextResponse.json(job);
-  } catch (e) {
-    saveJob(job);
-    return NextResponse.json({ error: (e as Error).message }, { status: 500 });
   }
-}
+  return NextResponse.json(job);
+});

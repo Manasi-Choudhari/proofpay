@@ -1,5 +1,5 @@
 import { captureAuthorization, sendPayout } from "./paypal";
-import { logEvent } from "./store";
+import { addLedger, logEvent } from "./store";
 import type { Decision, Job, Milestone } from "./types";
 import type { VerificationResult } from "./ai";
 
@@ -52,6 +52,19 @@ export async function releaseMilestone(job: Job, milestone: Milestone, approvedB
   milestone.status = "released";
   milestone.captureId = capture.id;
   job.capturedTotal = Math.round((job.capturedTotal + milestone.amount) * 100) / 100;
+  addLedger({
+    ownerEmail: job.ownerEmail,
+    type: "Capture",
+    amount: milestone.amount,
+    currency: job.currency,
+    paypalRef: capture.id,
+    counterparty: job.freelancerName,
+    source: "Human job",
+    sourceId: job.id,
+    sourceTitle: job.title,
+    aiConfidence: milestone.attempts.at(-1)?.confidence,
+    note: `${milestone.title} (${approvedBy === "agent" ? "AI-verified" : "client-approved"})`,
+  });
   logEvent(
     job,
     "paypal",
@@ -70,6 +83,18 @@ export async function releaseMilestone(job: Job, milestone: Milestone, approvedB
         note: `Payment for "${milestone.title}" on "${job.title}"`,
       });
       milestone.payoutBatchId = batch.payout_batch_id;
+      addLedger({
+        ownerEmail: job.ownerEmail,
+        type: "Payout",
+        amount: net,
+        currency: job.currency,
+        paypalRef: batch.payout_batch_id,
+        counterparty: job.freelancerEmail,
+        source: "Human job",
+        sourceId: job.id,
+        sourceTitle: job.title,
+        note: `Net of ${PLATFORM_FEE_PCT}% platform fee`,
+      });
       logEvent(
         job,
         "paypal",

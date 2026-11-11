@@ -60,7 +60,7 @@ const money = (value: number, currency: string) => ({
 });
 
 export async function createAuthorizeOrder(opts: {
-  jobId: string;
+  refId: string;
   title: string;
   amount: number;
   currency: string;
@@ -69,8 +69,8 @@ export async function createAuthorizeOrder(opts: {
     intent: "AUTHORIZE",
     purchase_units: [
       {
-        reference_id: opts.jobId,
-        custom_id: opts.jobId,
+        reference_id: opts.refId,
+        custom_id: opts.refId,
         description: `ProofPay escrow: ${opts.title}`.slice(0, 127),
         amount: money(opts.amount, opts.currency),
       },

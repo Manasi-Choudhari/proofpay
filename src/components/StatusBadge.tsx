@@ -7,6 +7,12 @@ const styles: Record<string, string> = {
   rejected: "bg-rose-500/15 text-rose-300 border-rose-400/30",
   needs_review: "bg-amber-500/15 text-amber-300 border-amber-400/30",
   released: "bg-emerald-500/15 text-emerald-300 border-emerald-400/30",
+  planned: "bg-slate-500/15 text-slate-300 border-slate-400/30",
+  running: "bg-violet-500/15 text-violet-300 border-violet-400/30",
+  queued: "bg-slate-500/15 text-slate-300 border-slate-400/30",
+  paid: "bg-emerald-500/15 text-emerald-300 border-emerald-400/30",
+  refused: "bg-rose-500/15 text-rose-300 border-rose-400/30",
+  skipped: "bg-amber-500/15 text-amber-300 border-amber-400/30",
 };
 
 const labels: Record<string, string> = {
@@ -18,6 +24,12 @@ const labels: Record<string, string> = {
   rejected: "Changes requested",
   needs_review: "Needs client review",
   released: "Paid",
+  planned: "Awaiting budget",
+  running: "Agent working",
+  queued: "Queued",
+  paid: "Verified & paid",
+  refused: "Unpaid",
+  skipped: "Skipped (budget)",
 };
 
 export default function StatusBadge({ status }: { status: string }) {

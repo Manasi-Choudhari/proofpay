@@ -27,11 +27,11 @@ export default function CreateJobForm() {
       const res = await fetch("/api/jobs", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...form, budget: Number(form.budget), clientName: "Client" }),
+        body: JSON.stringify({ ...form, budget: Number(form.budget) }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
-      router.push(`/jobs/${data.id}`);
+      router.push(`/app/jobs/${data.id}`);
     } catch (err) {
       setError((err as Error).message);
       setLoading(false);

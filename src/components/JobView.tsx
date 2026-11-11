@@ -46,7 +46,7 @@ export default function JobView({
   const returned = job.status === "cancelled" ? job.total - job.capturedTotal : 0;
 
   return (
-    <div className="mx-auto max-w-6xl px-6 py-10 space-y-6">
+    <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <div className="text-xs font-mono text-slate-500">JOB #{job.id}</div>
@@ -89,7 +89,7 @@ export default function JobView({
                 Pay with PayPal to place <span className="text-slate-100 font-medium">{usd(job.total)}</span> in escrow.
                 This only <em>authorizes</em> the payment. You aren&apos;t charged until the AI verifies the work.
               </p>
-              <PayPalEscrowButton job={job} clientId={paypalClientId} onFunded={setJob} />
+              <PayPalEscrowButton<Job> basePath={`/api/jobs/${job.id}`} clientId={paypalClientId} onFunded={setJob} />
             </div>
           )}
           {job.status === "funded" && (
@@ -315,7 +315,7 @@ const kindStyle: Record<JobEvent["kind"], string> = {
 };
 const kindLabel: Record<JobEvent["kind"], string> = { ai: "AI", paypal: "PayPal", policy: "Guardrail", user: "User" };
 
-function ActivityLog({ events, paypalBase }: { events: JobEvent[]; paypalBase: string }) {
+export function ActivityLog({ events, paypalBase }: { events: JobEvent[]; paypalBase: string }) {
   return (
     <div className="card">
       <h3 className="font-semibold mb-3">Agent activity &amp; audit trail</h3>

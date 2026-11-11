@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { verifyDeliverable, type ImageInput } from "@/lib/ai";
+import { bad, notFound, withAuth } from "@/lib/api";
 import { decide, releaseMilestone } from "@/lib/escrow";
 import { getJob, logEvent, saveJob } from "@/lib/store";
 import type { Verdict } from "@/lib/types";
@@ -30,15 +31,15 @@ async function fetchPage(url: string): Promise<string> {
   }
 }
 
-export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const job = getJob((await params).id);
-  if (!job) return NextResponse.json({ error: "Job not found" }, { status: 404 });
-  if (job.status !== "funded") return NextResponse.json({ error: "Job must be funded before submitting work" }, { status: 400 });
+export const POST = withAuth<{ id: string }>(async (req, session, { id }) => {
+  const job = getJob(id, session.email);
+  if (!job) return notFound();
+  if (job.status !== "funded") return bad("Job must be funded before submitting work");
 
   const body = await req.json();
   const milestone = job.milestones.find((m) => m.id === body.milestoneId);
-  if (!milestone) return NextResponse.json({ error: "Milestone not found" }, { status: 404 });
-  if (milestone.status === "released") return NextResponse.json({ error: "Milestone already paid" }, { status: 400 });
+  if (!milestone) return notFound();
+  if (milestone.status === "released") return bad("Milestone already paid");
 
   const proofText = body.proofText ? String(body.proofText).slice(0, 5000) : undefined;
   let proofUrl: string | undefined;
@@ -50,15 +51,14 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       proofUrl = String(body.proofUrl);
       pageContent = await fetchPage(u.toString());
     } catch {
-      return NextResponse.json({ error: "Invalid URL" }, { status: 400 });
+      return bad("Invalid URL");
     }
   }
   let image: ImageInput | undefined;
   if (body.image?.base64 && body.image?.mimeType?.startsWith("image/")) {
     image = { mimeType: body.image.mimeType, base64: body.image.base64 };
   }
-  if (!proofText && !proofUrl && !image)
-    return NextResponse.json({ error: "Submit a URL, notes, or a screenshot as proof" }, { status: 400 });
+  if (!proofText && !proofUrl && !image) return bad("Submit a URL, notes, or a screenshot as proof");
 
   logEvent(job, "user", `${job.freelancerName} submitted proof for "${milestone.title}".`);
 
@@ -105,4 +105,4 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     saveJob(job);
     return NextResponse.json({ error: (e as Error).message }, { status: 500 });
   }
-}
+});

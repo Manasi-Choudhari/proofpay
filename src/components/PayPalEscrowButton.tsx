@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import type { Job } from "@/lib/types";
 
 type PayPalNamespace = {
   Buttons: (opts: Record<string, unknown>) => { render: (el: HTMLElement) => Promise<void>; close?: () => void };
@@ -31,19 +30,21 @@ function loadSdk(clientId: string) {
   return sdkPromise;
 }
 
-export default function PayPalEscrowButton({
-  job,
+export default function PayPalEscrowButton<T>({
+  basePath,
   clientId,
   onFunded,
 }: {
-  job: Job;
+  basePath: string;
   clientId: string;
-  onFunded: (job: Job) => void;
+  onFunded: (result: T) => void;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const [error, setError] = useState("");
   const onFundedRef = useRef(onFunded);
-  onFundedRef.current = onFunded;
+  useEffect(() => {
+    onFundedRef.current = onFunded;
+  });
 
   useEffect(() => {
     if (!clientId) {
@@ -59,13 +60,13 @@ export default function PayPalEscrowButton({
         const b = window.paypal.Buttons({
           style: { layout: "vertical", color: "blue", shape: "rect", label: "pay" },
           createOrder: async () => {
-            const res = await fetch(`/api/jobs/${job.id}/order`, { method: "POST" });
+            const res = await fetch(`${basePath}/order`, { method: "POST" });
             const data = await res.json();
             if (!res.ok) throw new Error(data.error);
             return data.id;
           },
           onApprove: async ({ orderID }: { orderID: string }) => {
-            const res = await fetch(`/api/jobs/${job.id}/authorize`, {
+            const res = await fetch(`${basePath}/authorize`, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ orderID }),
@@ -87,7 +88,7 @@ export default function PayPalEscrowButton({
       cancelled = true;
       buttons?.close?.();
     };
-  }, [clientId, job.id]);
+  }, [clientId, basePath]);
 
   return (
     <div>

@@ -42,6 +42,7 @@ export interface JobEvent {
 
 export interface Job {
   id: string;
+  ownerEmail: string;
   createdAt: string;
   description: string;
   title: string;
@@ -57,5 +58,87 @@ export interface Job {
   authorizationId?: string;
   authorizationExpires?: string;
   capturedTotal: number;
+  events: JobEvent[];
+}
+
+export type LedgerType = "Authorization" | "Capture" | "Void" | "Payout" | "Refused";
+
+export interface LedgerEntry {
+  id: string;
+  at: string;
+  ownerEmail: string;
+  type: LedgerType;
+  amount: number;
+  currency: string;
+  paypalRef?: string;
+  counterparty: string;
+  source: "Human job" | "Agent mission";
+  sourceId: string;
+  sourceTitle: string;
+  aiConfidence?: number;
+  note: string;
+}
+
+export type AgentSkill = "copywriting" | "translation" | "research" | "seo";
+
+export interface SellerAgent {
+  id: string;
+  name: string;
+  skill: AgentSkill;
+  price: number;
+  tagline: string;
+  persona: string;
+  lowQuality?: boolean;
+}
+
+export interface AgentStats {
+  hires: number;
+  paid: number;
+  refused: number;
+  earned: number;
+}
+
+export type TaskStatus = "queued" | "working" | "verifying" | "paid" | "refused" | "skipped";
+
+export interface TaskAttempt {
+  agentId: string;
+  agentName: string;
+  price: number;
+  output: string;
+  results: CriterionResult[];
+  confidence: number;
+  paid: boolean;
+  captureId?: string;
+  guardrails: { label: string; ok: boolean }[];
+  note: string;
+  provider: string;
+}
+
+export interface MissionTask {
+  id: string;
+  title: string;
+  skill: AgentSkill;
+  brief: string;
+  criteria: string[];
+  status: TaskStatus;
+  candidates: string[];
+  attempts: TaskAttempt[];
+}
+
+export type MissionStatus = "planned" | "funded" | "running" | "completed" | "cancelled";
+
+export interface Mission {
+  id: string;
+  ownerEmail: string;
+  createdAt: string;
+  goal: string;
+  title: string;
+  budget: number;
+  currency: string;
+  spent: number;
+  status: MissionStatus;
+  tasks: MissionTask[];
+  orderId?: string;
+  authorizationId?: string;
   events: JobEvent[];
 }

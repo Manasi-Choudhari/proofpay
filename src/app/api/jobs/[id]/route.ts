@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
+import { notFound, withAuth } from "@/lib/api";
 import { getJob } from "@/lib/store";
 
-export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const job = getJob((await params).id);
-  if (!job) return NextResponse.json({ error: "Job not found" }, { status: 404 });
-  return NextResponse.json(job);
-}
+export const GET = withAuth<{ id: string }>(async (_req, session, { id }) => {
+  const job = getJob(id, session.email);
+  return job ? NextResponse.json(job) : notFound();
+});
