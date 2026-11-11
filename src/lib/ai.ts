@@ -216,6 +216,32 @@ const verificationSchema = {
   required: ["results", "confidence", "summary", "feedback"],
 };
 
+const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+
+function alignResults(criteria: string[], raw: unknown): VerificationResult["results"] {
+  const valid = (Array.isArray(raw) ? raw : [])
+    .filter((r) => r && typeof r === "object" && typeof r.criterion === "string")
+    .map((r) => ({
+      criterion: String(r.criterion),
+      pass: r.pass === true || r.pass === "true",
+      evidence: typeof r.evidence === "string" ? r.evidence : "",
+    }));
+  const used = new Set<number>();
+  return criteria.map((criterion, i) => {
+    const key = norm(criterion);
+    let idx = valid.findIndex((r, j) => !used.has(j) && norm(r.criterion) === key);
+    if (idx < 0) idx = valid.findIndex((r, j) => !used.has(j) && (norm(r.criterion).includes(key) || key.includes(norm(r.criterion))));
+    if (idx < 0 && valid[i] && !used.has(i)) idx = i;
+    const match = idx >= 0 ? valid[idx] : undefined;
+    if (idx >= 0) used.add(idx);
+    return {
+      criterion,
+      pass: !!match?.pass,
+      evidence: match?.evidence || "The verifier returned no evidence for this criterion.",
+    };
+  });
+}
+
 export async function verifyDeliverable(opts: {
   jobTitle: string;
   jobSummary: string;
@@ -248,6 +274,7 @@ export async function verifyDeliverable(opts: {
     .filter(Boolean)
     .join("\n");
   const res = await generateJSON<VerificationResult>(system, prompt, verificationSchema, opts.image);
+  res.data.results = alignResults(opts.criteria, res.data.results);
   const c = Number(res.data.confidence);
   res.data.confidence = Number.isFinite(c) ? Math.max(0, Math.min(1, c > 1 ? c / 100 : c)) : 0.5;
   return res;
