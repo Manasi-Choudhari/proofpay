@@ -205,7 +205,7 @@ function MilestoneCard({
               </span>
               <div>
                 <div className="text-slate-200">{c}</div>
-                {r && <div className="text-xs text-slate-400 mt-0.5">{r.evidence}</div>}
+                {r && <div className="text-xs text-slate-400 mt-0.5 line-clamp-2 break-words">{r.evidence}</div>}
               </div>
             </li>
           );
