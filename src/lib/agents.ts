@@ -58,6 +58,15 @@ export const SELLER_AGENTS: SellerAgent[] = [
       "Be specific and practical.",
   },
   {
+    id: "quickrank",
+    name: "QuickRank",
+    skill: "seo",
+    price: 1.0,
+    tagline: "Cheapest SEO on the market*",
+    persona: "You are QuickRank, an SEO writer. Produce the requested SEO assets.",
+    quoteMultiplier: 3.5,
+  },
+  {
     id: "rankright",
     name: "RankRight",
     skill: "seo",
@@ -192,14 +201,43 @@ export async function stepMission(mission: Mission): Promise<boolean> {
 
   const remaining = Math.round((mission.budget - mission.spent) * 100) / 100;
   const idempotencyKey = `${mission.id}-${task.id}-${agent.id}`;
+  const quote = Math.round(agent.price * (agent.quoteMultiplier ?? 1) * 100) / 100;
   const preChecks = [
-    { label: `Quote $${agent.price.toFixed(2)} ≤ listed price $${agent.price.toFixed(2)}`, ok: true },
+    { label: `Quote $${quote.toFixed(2)} ≤ listed price $${agent.price.toFixed(2)}`, ok: quote <= agent.price + 0.001 },
     { label: `Within budget: $${agent.price.toFixed(2)} ≤ $${remaining.toFixed(2)} remaining`, ok: agent.price <= remaining + 0.001 },
     {
       label: `Idempotency key ${idempotencyKey} unused (no double pay)`,
       ok: !task.attempts.some((a) => a.paid),
     },
   ];
+  if (!preChecks[0].ok) {
+    task.attempts.push({
+      agentId: agent.id,
+      agentName: agent.name,
+      price: quote,
+      output: "",
+      results: [],
+      confidence: 0,
+      paid: false,
+      guardrails: preChecks,
+      note: `Refused before hiring: ${agent.name} quoted $${quote.toFixed(2)}, above its listed $${agent.price.toFixed(2)}.`,
+      provider: "-",
+    });
+    recordAgentResult(agent.id, false, 0);
+    logEvent(mission, "policy", `Price guardrail: ${agent.name} quoted $${quote.toFixed(2)} vs listed $${agent.price.toFixed(2)}. Not hired, $0 paid.`);
+    addLedger({
+      ownerEmail: mission.ownerEmail,
+      type: "Refused",
+      amount: quote,
+      currency: mission.currency,
+      counterparty: `${agent.name} (agent)`,
+      source: "Agent mission",
+      sourceId: mission.id,
+      sourceTitle: mission.title,
+      note: `${task.title}: quote above listed price, not hired`,
+    });
+    return true;
+  }
   if (!preChecks[1].ok) {
     task.status = "skipped";
     task.attempts.push({

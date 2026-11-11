@@ -72,7 +72,7 @@ export async function releaseMilestone(job: Job, milestone: Milestone, approvedB
     capture.id,
   );
 
-  if (process.env.PAYOUTS_ENABLED === "true" && job.freelancerEmail) {
+  if (process.env.PAYOUTS_ENABLED !== "false" && job.freelancerEmail) {
     const net = Math.round(milestone.amount * (1 - PLATFORM_FEE_PCT / 100) * 100) / 100;
     try {
       const batch = await sendPayout({

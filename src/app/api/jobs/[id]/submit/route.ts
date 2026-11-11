@@ -2,34 +2,11 @@ import { NextResponse } from "next/server";
 import { verifyDeliverable, type ImageInput } from "@/lib/ai";
 import { bad, notFound, withAuth } from "@/lib/api";
 import { decide, releaseMilestone } from "@/lib/escrow";
+import { fetchDeliverable } from "@/lib/safeFetch";
 import { getJob, logEvent, saveJob } from "@/lib/store";
 import type { Verdict } from "@/lib/types";
 
 export const maxDuration = 60;
-
-const MAX_PAGE_CHARS = 40_000;
-
-async function fetchPage(url: string): Promise<string> {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 10_000);
-  try {
-    const res = await fetch(url, {
-      signal: controller.signal,
-      headers: { "User-Agent": "ProofPay-Verifier/1.0" },
-      redirect: "follow",
-    });
-    if (!res.ok) return `[Could not load page: HTTP ${res.status}]`;
-    const text = await res.text();
-    return text
-      .replace(/<script[\s\S]*?<\/script>/gi, "")
-      .replace(/\s+/g, " ")
-      .slice(0, MAX_PAGE_CHARS);
-  } catch (e) {
-    return `[Could not load page: ${(e as Error).message}]`;
-  } finally {
-    clearTimeout(timer);
-  }
-}
 
 export const POST = withAuth<{ id: string }>(async (req, session, { id }) => {
   const job = getJob(id, session.email);
@@ -45,18 +22,19 @@ export const POST = withAuth<{ id: string }>(async (req, session, { id }) => {
   let proofUrl: string | undefined;
   let pageContent: string | undefined;
   if (body.proofUrl) {
+    proofUrl = String(body.proofUrl).slice(0, 2000);
     try {
-      const u = new URL(String(body.proofUrl), new URL(req.url).origin);
-      if (!["http:", "https:"].includes(u.protocol)) throw new Error();
-      proofUrl = String(body.proofUrl);
-      pageContent = await fetchPage(u.toString());
-    } catch {
-      return bad("Invalid URL");
+      pageContent = await fetchDeliverable(proofUrl, new URL(req.url).origin);
+    } catch (e) {
+      return bad(`Can't use that URL: ${(e as Error).message}`);
     }
   }
   let image: ImageInput | undefined;
-  if (body.image?.base64 && body.image?.mimeType?.startsWith("image/")) {
-    image = { mimeType: body.image.mimeType, base64: body.image.base64 };
+  if (body.image?.base64) {
+    const mimeType = String(body.image.mimeType || "");
+    if (!["image/png", "image/jpeg", "image/webp", "image/gif"].includes(mimeType)) return bad("Screenshot must be PNG, JPEG, WebP or GIF");
+    if (String(body.image.base64).length > 5_600_000) return bad("Screenshot must be under 4 MB");
+    image = { mimeType, base64: String(body.image.base64) };
   }
   if (!proofText && !proofUrl && !image) return bad("Submit a URL, notes, or a screenshot as proof");
 

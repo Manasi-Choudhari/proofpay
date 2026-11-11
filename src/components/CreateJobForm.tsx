@@ -82,7 +82,7 @@ export default function CreateJobForm() {
         </div>
       </div>
       <div>
-        <label className="label">Freelancer PayPal email (optional, for Payouts)</label>
+        <label className="label">Freelancer PayPal email (optional, auto-paid via PayPal Payouts)</label>
         <input
           className="input"
           type="email"

@@ -75,23 +75,66 @@ export function verifyOtp(email: string, code: string): { ok: boolean; error?: s
   return { ok: true };
 }
 
+export function emailConfigured() {
+  const { SMTP_HOST, SMTP_USER, SMTP_PASS } = process.env;
+  return !!(SMTP_HOST && SMTP_USER && SMTP_PASS);
+}
+
+function otpEmailHtml(code: string) {
+  return `<!doctype html><html><body style="margin:0;background:#0b1220;font-family:Segoe UI,Arial,sans-serif;color:#e2e8f0">
+<table width="100%" cellpadding="0" cellspacing="0" style="padding:32px 16px"><tr><td align="center">
+<table width="420" cellpadding="0" cellspacing="0" style="background:#111a2e;border:1px solid #1e293b;border-radius:16px;padding:32px">
+<tr><td style="font-size:18px;font-weight:700;color:#fff">ProofPay</td></tr>
+<tr><td style="padding-top:20px;font-size:15px;color:#cbd5e1">Use this code to sign in. It expires in 10 minutes.</td></tr>
+<tr><td style="padding:24px 0;font-size:36px;letter-spacing:10px;font-weight:700;color:#38bdf8;font-family:Consolas,monospace">${code}</td></tr>
+<tr><td style="font-size:13px;color:#64748b">If you didn't try to sign in, you can ignore this email. Never share this code with anyone. ProofPay staff will never ask for it.</td></tr>
+</table></td></tr></table></body></html>`;
+}
+
 export async function deliverOtp(email: string, code: string): Promise<"email" | "demo"> {
+  if (!emailConfigured()) return "demo";
   const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM } = process.env;
-  if (!SMTP_HOST || !SMTP_USER || !SMTP_PASS) return "demo";
+  const port = Number(SMTP_PORT || 465);
   const nodemailer = await import("nodemailer");
   const transport = nodemailer.createTransport({
     host: SMTP_HOST,
-    port: Number(SMTP_PORT || 465),
-    secure: Number(SMTP_PORT || 465) === 465,
-    auth: { user: SMTP_USER, pass: SMTP_PASS },
+    port,
+    secure: port === 465,
+    auth: { user: SMTP_USER, pass: SMTP_PASS?.replace(/\s+/g, "") },
+    connectionTimeout: 10_000,
   });
   await transport.sendMail({
     from: SMTP_FROM || `ProofPay <${SMTP_USER}>`,
     to: email,
-    subject: `Your ProofPay sign-in code: ${code}`,
+    subject: `${code} is your ProofPay sign-in code`,
     text: `Your ProofPay verification code is ${code}. It expires in 10 minutes. If you didn't request it, ignore this email.`,
+    html: otpEmailHtml(code),
   });
   return "email";
+}
+
+export function clearOtp(email: string) {
+  otps().delete(email);
+}
+
+// ---------- Per-IP rate limiting ----------
+
+const ipHits = () => ((globalThis as unknown as { __proofpayIpHits?: Map<string, number[]> }).__proofpayIpHits ??= new Map());
+
+export function rateLimit(key: string, max: number, windowMs: number): boolean {
+  const now = Date.now();
+  const hits = (ipHits().get(key) ?? []).filter((t: number) => now - t < windowMs);
+  if (hits.length >= max) {
+    ipHits().set(key, hits);
+    return false;
+  }
+  hits.push(now);
+  ipHits().set(key, hits);
+  return true;
+}
+
+export function clientIp(req: Request) {
+  return req.headers.get("x-forwarded-for")?.split(",")[0].trim() || req.headers.get("x-real-ip") || "local";
 }
 
 // ---------- Sessions ----------

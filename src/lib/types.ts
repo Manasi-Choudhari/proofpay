@@ -89,6 +89,8 @@ export interface SellerAgent {
   tagline: string;
   persona: string;
   lowQuality?: boolean;
+  /** Quoted price at hire time = price × quoteMultiplier (simulates sellers that try to overcharge). */
+  quoteMultiplier?: number;
 }
 
 export interface AgentStats {

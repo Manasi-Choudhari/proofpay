@@ -124,9 +124,11 @@ export default function MissionView({
             <div className="card space-y-2 border-emerald-400/30">
               <h3 className="font-semibold text-emerald-300">Mission complete</h3>
               <p className="text-sm text-slate-300">
-                Spent {usd(mission.spent)} of {usd(mission.budget)}.{" "}
+                Spent {usd(mission.spent)} of {usd(mission.budget)}; {usd(mission.budget - mission.spent)} voided.{" "}
                 {mission.tasks.reduce((n, t) => n + t.attempts.filter((a) => !a.paid && a.output).length, 0)} junk
-                deliverable(s) refused at $0.
+                deliverable(s) refused at $0 ·{" "}
+                {mission.tasks.reduce((n, t) => n + t.attempts.filter((a) => a.guardrails[0] && !a.guardrails[0].ok).length, 0)}{" "}
+                overpriced quote(s) blocked.
               </p>
             </div>
           )}

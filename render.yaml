@@ -15,11 +15,27 @@ services:
         sync: false
       - key: PAYPAL_CLIENT_SECRET
         sync: false
+      - key: GROQ_API_KEY
+        sync: false
       - key: GEMINI_API_KEY
         sync: false
-      - key: GROQ_API_KEY
+      - key: GEMINI_MODEL
+        value: gemini-3.8-flash
+      - key: AI_PROVIDER_ORDER
+        value: groq,gemini
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: SMTP_HOST
+        value: smtp.gmail.com
+      - key: SMTP_PORT
+        value: "465"
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
         sync: false
       - key: AUTO_RELEASE_CONFIDENCE
         value: "0.75"
       - key: PAYOUTS_ENABLED
-        value: "false"
+        value: "true"
+      - key: PLATFORM_FEE_PCT
+        value: "5"

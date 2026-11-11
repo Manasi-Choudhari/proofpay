@@ -40,10 +40,11 @@ function TypePill(p: ICellRendererParams<LedgerEntry>) {
 function ConfidenceBar(p: ICellRendererParams<LedgerEntry>) {
   if (p.value == null) return <span className="text-slate-600">-</span>;
   const pct = Math.round(p.value * 100);
+  const refused = p.data?.type === "Refused";
   return (
-    <div className="flex items-center gap-2 h-full">
+    <div className="flex items-center gap-2 h-full" title={refused ? "Verifier's confidence that the work FAILED" : "Verifier's confidence that the work passed"}>
       <div className="h-1.5 w-16 rounded-full bg-white/10 overflow-hidden">
-        <div className={`h-full ${pct >= 70 ? "bg-emerald-400" : "bg-rose-400"}`} style={{ width: `${pct}%` }} />
+        <div className={`h-full ${refused ? "bg-rose-400" : pct >= 70 ? "bg-emerald-400" : "bg-amber-400"}`} style={{ width: `${pct}%` }} />
       </div>
       <span className="text-xs">{pct}%</span>
     </div>
@@ -85,13 +86,13 @@ export default function LedgerGrid({ rows }: { rows: LedgerEntry[] }) {
       { field: "source", headerName: "Source", width: 140, filter: true },
       { field: "sourceTitle", headerName: "Job / mission", flex: 1, minWidth: 200, filter: true },
       { field: "counterparty", headerName: "Counterparty", width: 200, filter: true },
-      { field: "aiConfidence", headerName: "AI confidence", width: 150, cellRenderer: ConfidenceBar, filter: "agNumberColumnFilter" },
+      { field: "aiConfidence", headerName: "Verifier confidence", width: 170, cellRenderer: ConfidenceBar, filter: "agNumberColumnFilter" },
       {
         field: "paypalRef",
         headerName: "PayPal ID",
         width: 190,
         cellClass: "font-mono text-xs",
-        valueFormatter: (p) => p.value ?? "(none, nothing charged)",
+        valueFormatter: (p) => (p.node?.rowPinned ? "" : (p.value ?? "(none, nothing charged)")),
       },
       { field: "note", headerName: "Note", flex: 1, minWidth: 220, tooltipField: "note" },
     ],
