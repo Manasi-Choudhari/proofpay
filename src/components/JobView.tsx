@@ -261,7 +261,7 @@ function MilestoneCard({
           <div className="flex flex-wrap items-center justify-between gap-3">
             <label className="text-xs text-slate-400 cursor-pointer hover:text-slate-200">
               <input type="file" accept="image/*" className="hidden" onChange={(e) => pickImage(e.target.files?.[0])} />
-              {imageName ? `📎 ${imageName}` : "+ Attach screenshot"}
+              {imageName ? `Attached: ${imageName}` : "+ Attach screenshot"}
             </label>
             <button
               className="btn-primary"

@@ -33,3 +33,72 @@ body {
 .label {
   @apply block text-xs font-medium uppercase tracking-wide text-slate-400 mb-1.5;
 }
+
+/* Landing page motion */
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(18px); }
+  to { opacity: 1; transform: none; }
+}
+.animate-fade-up { animation: fade-up 0.8s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+
+@keyframes drift {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(4%, 6%) scale(1.08); }
+}
+.glow-blob { animation: drift 16s ease-in-out infinite; }
+
+.bg-grid {
+  background-image:
+    linear-gradient(rgba(148, 163, 184, 0.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(148, 163, 184, 0.07) 1px, transparent 1px);
+  background-size: 56px 56px;
+  mask-image: radial-gradient(ellipse at 50% 0%, black 30%, transparent 75%);
+}
+
+.text-shimmer {
+  background: linear-gradient(90deg, #38bdf8, #34d399, #38bdf8);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: shimmer 6s linear infinite;
+}
+@keyframes shimmer { to { background-position: 200% center; } }
+
+.reveal {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 0.8s cubic-bezier(0.2, 0.7, 0.2, 1), transform 0.8s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+.reveal.is-visible { opacity: 1; transform: none; }
+
+.lift { transition: transform 0.25s ease, border-color 0.25s ease, background-color 0.25s ease; }
+.lift:hover { transform: translateY(-4px); border-color: rgba(56, 189, 248, 0.35); background-color: rgba(255, 255, 255, 0.05); }
+
+/* Hero escrow demo: one 7s loop */
+.demo-check, .demo-pill-paid, .demo-pill-held, .demo-bar, .demo-txn { animation-duration: 7s; animation-iteration-count: infinite; animation-timing-function: ease-out; }
+.demo-check { opacity: 0; transform: scale(0.4); }
+.demo-check-1 { animation-name: check-1; }
+.demo-check-2 { animation-name: check-2; }
+.demo-check-3 { animation-name: check-3; }
+@keyframes check-1 { 0%, 14% { opacity: 0; transform: scale(0.4); } 20%, 92% { opacity: 1; transform: scale(1); } 100% { opacity: 0; } }
+@keyframes check-2 { 0%, 26% { opacity: 0; transform: scale(0.4); } 32%, 92% { opacity: 1; transform: scale(1); } 100% { opacity: 0; } }
+@keyframes check-3 { 0%, 38% { opacity: 0; transform: scale(0.4); } 44%, 92% { opacity: 1; transform: scale(1); } 100% { opacity: 0; } }
+.demo-bar { width: 0; animation-name: bar; }
+@keyframes bar { 0%, 8% { width: 0; } 50%, 92% { width: 100%; } 100% { width: 0; } }
+.demo-pill-held { animation-name: pill-held; }
+.demo-pill-paid { opacity: 0; animation-name: pill-paid; }
+@keyframes pill-held { 0%, 52% { opacity: 1; } 54%, 97% { opacity: 0; } 100% { opacity: 1; } }
+@keyframes pill-paid { 0%, 55% { opacity: 0; transform: translateY(4px); } 59%, 92% { opacity: 1; transform: none; } 95%, 100% { opacity: 0; } }
+.demo-txn { opacity: 0; animation-name: txn; }
+@keyframes txn { 0%, 58% { opacity: 0; } 64%, 92% { opacity: 1; } 100% { opacity: 0; } }
+.demo-dot { animation: pulse-dot 1.4s ease-in-out infinite; }
+@keyframes pulse-dot { 50% { opacity: 0.3; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-up, .glow-blob, .text-shimmer, .demo-dot { animation: none; }
+  .reveal { opacity: 1; transform: none; transition: none; }
+  .demo-check, .demo-pill-paid, .demo-txn { animation: none; opacity: 1; transform: none; }
+  .demo-pill-held { animation: none; opacity: 0; }
+  .demo-bar { animation: none; width: 100%; }
+}
