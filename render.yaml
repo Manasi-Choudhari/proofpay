@@ -25,13 +25,9 @@ services:
         value: groq,gemini
       - key: SESSION_SECRET
         generateValue: true
-      - key: SMTP_HOST
-        value: smtp.gmail.com
-      - key: SMTP_PORT
-        value: "465"
-      - key: SMTP_USER
+      - key: BREVO_API_KEY
         sync: false
-      - key: SMTP_PASS
+      - key: EMAIL_FROM
         sync: false
       - key: AUTO_RELEASE_CONFIDENCE
         value: "0.75"

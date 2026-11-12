@@ -75,9 +75,26 @@ export function verifyOtp(email: string, code: string): { ok: boolean; error?: s
   return { ok: true };
 }
 
+const smtpConfigured = () => !!(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
+
 export function emailConfigured() {
-  const { SMTP_HOST, SMTP_USER, SMTP_PASS } = process.env;
-  return !!(SMTP_HOST && SMTP_USER && SMTP_PASS);
+  return !!process.env.BREVO_API_KEY || smtpConfigured();
+}
+
+function sender() {
+  const raw = process.env.EMAIL_FROM || process.env.SMTP_FROM || process.env.SMTP_USER || "";
+  const m = raw.match(/^\s*(.*?)\s*<([^>]+)>\s*$/);
+  return m ? { name: m[1] || "ProofPay", email: m[2] } : { name: "ProofPay", email: raw.trim() };
+}
+
+async function sendViaBrevo(to: string, subject: string, text: string, html: string) {
+  const res = await fetch("https://api.brevo.com/v3/smtp/email", {
+    method: "POST",
+    headers: { "api-key": process.env.BREVO_API_KEY!, "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify({ sender: sender(), to: [{ email: to }], subject, textContent: text, htmlContent: html }),
+    signal: AbortSignal.timeout(10_000),
+  });
+  if (!res.ok) throw new Error(`Brevo ${res.status}: ${(await res.text()).slice(0, 200)}`);
 }
 
 function otpEmailHtml(code: string) {
@@ -93,7 +110,13 @@ function otpEmailHtml(code: string) {
 
 export async function deliverOtp(email: string, code: string): Promise<"email" | "demo"> {
   if (!emailConfigured()) return "demo";
-  const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM } = process.env;
+  const subject = `${code} is your ProofPay sign-in code`;
+  const text = `Your ProofPay verification code is ${code}. It expires in 10 minutes. If you didn't request it, ignore this email.`;
+  if (process.env.BREVO_API_KEY) {
+    await sendViaBrevo(email, subject, text, otpEmailHtml(code));
+    return "email";
+  }
+  const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS } = process.env;
   const port = Number(SMTP_PORT || 465);
   const nodemailer = await import("nodemailer");
   const transport = nodemailer.createTransport({
@@ -104,10 +127,10 @@ export async function deliverOtp(email: string, code: string): Promise<"email" |
     connectionTimeout: 10_000,
   });
   await transport.sendMail({
-    from: SMTP_FROM || `ProofPay <${SMTP_USER}>`,
+    from: { name: sender().name, address: sender().email },
     to: email,
-    subject: `${code} is your ProofPay sign-in code`,
-    text: `Your ProofPay verification code is ${code}. It expires in 10 minutes. If you didn't request it, ignore this email.`,
+    subject,
+    text,
     html: otpEmailHtml(code),
   });
   return "email";

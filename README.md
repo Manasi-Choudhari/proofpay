@@ -15,7 +15,10 @@ Money is held with PayPal, an AI agent verifies the work against the contract, a
 [![Render](https://img.shields.io/badge/Deploy-Render-46E3B7?logo=render&logoColor=white)](https://render.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
+### [**▶ Live demo: proofpay-oqmt.onrender.com**](https://proofpay-oqmt.onrender.com)
+
 Built for the **PayPal AI Hackathon** · Runs on the PayPal **sandbox**, no real money moves.
+<sub>Hosted on Render's free plan: the first visit after a quiet period can take up to a minute to wake the server.</sub>
 
 ![ProofPay landing page](docs/screenshots/landing.png)
 
@@ -169,7 +172,8 @@ npm run dev                  # http://localhost:3000
 | `PAYPAL_ENV` | | `sandbox` (default) |
 | `GROQ_API_KEY` / `GEMINI_API_KEY` | At least one | AI providers |
 | `AI_PROVIDER_ORDER` | | Default `groq,gemini` |
-| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM` | | Real email OTP. Without them the code is shown on screen ("sandbox inbox" mode). |
+| `BREVO_API_KEY`, `EMAIL_FROM` | | Real email OTP over Brevo's HTTPS API (works where SMTP is blocked, such as Render's free plan). |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM` | | Real email OTP over SMTP. With no email provider set, the code is shown on screen ("sandbox inbox" mode). |
 | `SESSION_SECRET` | Recommended | Signs session cookies |
 | `AUTO_RELEASE_CONFIDENCE` | | Default `0.75` |
 | `PAYOUTS_ENABLED`, `PLATFORM_FEE_PCT` | | Default `true`, `5` |
@@ -178,7 +182,7 @@ npm run dev                  # http://localhost:3000
 
 **PayPal sandbox setup:** in the Developer Dashboard go to *Testing Tools → Sandbox Accounts* and create a **United States Business** and a **United States Personal** account. Then in *Apps & Credentials (Sandbox)* create a Merchant app linked to the US business account and copy its Client ID and Secret. (Sandbox accounts from some countries, such as India, can't use the authorize/capture flow.)
 
-**Email codes with Gmail:** turn on 2-Step Verification, create an App Password at [myaccount.google.com/apppasswords](https://myaccount.google.com/apppasswords), then set `SMTP_HOST=smtp.gmail.com`, `SMTP_PORT=465`, `SMTP_USER=<your gmail>` and `SMTP_PASS=<app password>`.
+**Email codes:** either create a free [Brevo](https://www.brevo.com/) account, generate an API key and set `BREVO_API_KEY` and `EMAIL_FROM` (a verified sender), or use Gmail SMTP: turn on 2-Step Verification, create an App Password at [myaccount.google.com/apppasswords](https://myaccount.google.com/apppasswords), then set `SMTP_HOST=smtp.gmail.com`, `SMTP_PORT=465`, `SMTP_USER=<your gmail>` and `SMTP_PASS=<app password>`.
 
 ## Judge walkthrough
 
@@ -193,7 +197,7 @@ About 3 minutes:
 ## Deploy on Render
 
 1. In Render: **New → Blueprint** → select this repository (it reads `render.yaml`).
-2. Fill in `PAYPAL_CLIENT_ID`, `PAYPAL_CLIENT_SECRET`, `GROQ_API_KEY`, `GEMINI_API_KEY`, `SMTP_USER`, `SMTP_PASS` and `SMTP_FROM`. `SESSION_SECRET` is generated automatically.
+2. Fill in `PAYPAL_CLIENT_ID`, `PAYPAL_CLIENT_SECRET`, `GROQ_API_KEY`, `GEMINI_API_KEY`, `BREVO_API_KEY` and `EMAIL_FROM`. `SESSION_SECRET` is generated automatically. (Render's free plan blocks outbound SMTP, so use Brevo there.)
 3. Deploy. The app builds with `npm ci && npm run build` and starts with `npm run start`.
 
 ## Project structure
