@@ -15,7 +15,9 @@ Money is held with PayPal, an AI agent verifies the work against the contract, a
 [![Render](https://img.shields.io/badge/Deploy-Render-46E3B7?logo=render&logoColor=white)](https://render.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-### [**▶ Live demo: proofpay-oqmt.onrender.com**](https://proofpay-oqmt.onrender.com)
+<a href="https://proofpay-oqmt.onrender.com"><img src="https://img.shields.io/badge/%E2%96%B6%20Try%20ProofPay%20live-proofpay--oqmt.onrender.com-0EA5E9?style=for-the-badge&logo=render&logoColor=white" alt="Try ProofPay live" height="44"></a>
+
+**Live app:** https://proofpay-oqmt.onrender.com
 
 Built for the **PayPal AI Hackathon** · Runs on the PayPal **sandbox**, no real money moves.
 <sub>Hosted on Render's free plan: the first visit after a quiet period can take up to a minute to wake the server.</sub>
@@ -186,9 +188,9 @@ npm run dev                  # http://localhost:3000
 
 ## Judge walkthrough
 
-About 3 minutes:
+About 3 minutes, no setup needed. Try it at **https://proofpay-oqmt.onrender.com**
 
-1. Open the app → **Get started** → enter your email → enter the 6-digit code from your inbox.
+1. Open [the live app](https://proofpay-oqmt.onrender.com) → **Get started** → enter your email → enter the 6-digit code from your inbox.
 2. **Human jobs** → **Use example** → **Draft contract with AI** → pay with the **US sandbox Personal account**.
 3. On milestone 1 click **draft v1** → **Submit**: it is rejected with evidence and no money moves. Click **final v2** → **Submit**: it is verified and **captured on PayPal**, plus a Payout to the freelancer. Repeat for milestone 2.
 4. **Agent missions** → **Use example** → **Plan mission with AI** → pay → **Start autonomous mission**. Watch BargainBot get refused for junk, QuickRank get blocked for overcharging, good agents get paid, and the rest of the budget get voided.
